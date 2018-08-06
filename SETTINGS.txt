@@ -7,10 +7,10 @@ COLUMNS: Shortname, EVP Phone, Event Builder, Venue Website Link
 TOKEN: client_secret.json
 ROW: 2
 
-TIME_RANGE: 12:00, 12:50
+TIME_RANGE: 17:00, 17:30
 REFRESH: 5
 SKIP: 
-REPORT: yes
+REPORT: no
 
 
 

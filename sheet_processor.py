@@ -33,7 +33,7 @@ class Sheet(object):
         self._connectSheet(scopes, token, name)
 
         path = os.getcwd()
-        self._last_report = pd.read_pickle(f'{path}/last_report.pkl')
+        self._last_report = pd.read_pickle(f'{path}/data/last_report.pkl')
         pd.options.display.max_rows = 9999
         print(self._last_report)
 
@@ -52,6 +52,7 @@ class Sheet(object):
     def main(self):
 
         row = self._row
+        client_links = {}
         error_clients = {}
         unreachable_clients = {'404s': [], 'Missing_Info': [], 'Selenium': []}
         keys = []
@@ -74,6 +75,7 @@ class Sheet(object):
                         connected = loop.run_until_complete(client.addWebsite())
 
                         if connected != 0:
+                            client_links[name] = client._links
                             check = client.runCheck()
 
                             if check == {name: {'Index': {'Phone_Number': 0, 'Eventplicity_Link': 0}}}:
@@ -107,7 +109,7 @@ class Sheet(object):
         finally:
             loop.close()
 
-        self._generateData(keys, frames, unreachable_clients)
+        self._generateData(keys, frames, client_links, unreachable_clients)
         subject, message = self._composeEmail(error_clients, unreachable_clients)
 
         return subject, message
@@ -143,9 +145,6 @@ class Sheet(object):
         try:
             frame = self._last_report.loc[name]
             last = frame.to_dict(orient='index')
-            for k, v in last.items():
-                print(k, v)
-            print('\n')
 
             for check_key, check_value in check[name].items():
                 for last_key, last_value in last.items():
@@ -396,14 +395,17 @@ class Sheet(object):
         else:
             raise ColumnException()
 
-    def _generateData(self, keys, frames, unreachable_clients):
+    def _generateData(self, keys, frames, client_links, unreachable_clients):
 
         report = pd.concat(frames, keys=keys, sort=False)
         path = os.getcwd()
-        report.to_pickle(f'{path}/last_report.pkl')
+        report.to_pickle(f'{path}/data/last_report.pkl')
 
-        with open(f'{path}/errors.pkl', 'wb') as f:
+        with open(f'{path}/data/errors.pkl', 'wb') as f:
             pickle.dump(unreachable_clients, f)
+
+        with open(f'{path}/data/clients.pkl', 'wb') as f:
+            pickle.dump(client_links, f)
 
 
 # x = Sheet('BotTest', ['Shortname', 'EVP Phone', 'Event Builder', 'Venue Website Link', 'Status'], 'client_secret.json', 2, ['101-steak'])
@@ -411,4 +413,5 @@ class Sheet(object):
 # u = {'404s': ['101-steak', 'wowowow'], 'Missing_Info': ['101-steak'], 'Selenium': {}}
 # subject, message = x._composeEmail(error_clients, u)
 # print(subject, '\n', message)
-# x.main()
+# subject, message = x.main()
+# print(message)

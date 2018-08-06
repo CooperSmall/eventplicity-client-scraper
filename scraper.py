@@ -18,7 +18,7 @@ class Website(object):
     _button = None
     _number = None
     _url = None
-    _links = None
+    _links = {}
     _extensions = {'Index': None}
 
     _keys = ['private', 'parties', 'page',
@@ -31,29 +31,6 @@ class Website(object):
              'CATERING', 'CONTACT', 'PRIVATE']
 
     def __init__(self, name, number, button, url):
-
-        # if re.search('.php/', url) is not None or re.search('.html/', url) is not None:
-        #     pass
-
-        # elif re.search('.php', url) is not None or re.search('.html', url) is not None:
-        #     url += '/'
-
-        # else:
-        #     domain_extensions = ['.com/', '.net/' '.org/', '.co/', '.us/', '.com',
-        #                          '.net', '.org', '.co', '.us']
-
-        #     for domain in domain_extensions:
-        #         split = len(url.split(domain, 1))
-        #         if split > 1:
-        #             url = url.split(domain, 1)[0]
-        #             if re.search('/', domain) is None:
-        #                 domain += '/'
-        #             url += domain
-        #             print(url)
-        #             break
-
-        # if url[:4] != 'http':
-        #     url = 'http://' + url
 
         number_formats = ['-', '.', ' ']
 
@@ -86,6 +63,7 @@ class Website(object):
         self._button = button
         self._number = number
         self._url = url
+        self._links['Index'] = self._url
 
     async def addWebsite(self):
 
@@ -177,9 +155,9 @@ class Website(object):
                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"}
 
         links = [self._cleanUrl(url) for url in urls]
-        self._links = dict(zip(keys, links))
-        print(self._links)
-        print(len(urls))
+        links = dict(zip(keys, links))
+        self._links.update(links)
+
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
                     urls = await asyncio.gather(*[self._addExtension(url, session) for url in urls])

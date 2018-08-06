@@ -57,7 +57,7 @@ def main():
     end_time = datetime.datetime.strptime(settings['TIME_RANGE'][1], '%H:%M').time()
 
     if start_time <= time <= end_time:
-        if settings['REPORT'] == 'yes':
+        if settings['REPORT'] == 'yes' or settings['REPORT'] == 'Yes':
             venue_master_database = Sheet(settings['NAME'], settings['COLUMNS'], settings['TOKEN'], settings['ROW'], settings['SKIP'])
             subject, message = venue_master_database.main()
             _sendEmail(settings['USER'], settings['PASSWORD'], settings['TO_ADDRESS'], subject, message)
@@ -274,7 +274,7 @@ def _update(setting, update, delete=None):
 
                         elif re.search('REPORT', setting) is not None:
                             update.lower()
-                            if update == 'yes' or update == 'no':
+                            if update == 'yes' or update == 'Yes' or update == 'no' or update == 'No':
                                 line = setting.split(f'{setting}: ', 1)[0]
                                 line = line + ': ' + update
                                 line.strip()
@@ -386,7 +386,7 @@ def lookupClient(lookup):
     path = os.getcwd()
 
     try:
-        report = pd.read_pickle(f'{path}/last_report.pkl')
+        report = pd.read_pickle(f'{path}/data/last_report.pkl')
         frame = report.loc[lookup]
         client = frame.to_dict(orient='index')
 
