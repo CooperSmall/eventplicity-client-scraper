@@ -476,7 +476,7 @@ class Sheet(object):
             pickle.dump(client_links, f)
 
 
-x = Sheet('BotTest', ['Shortname', 'EVP Phone', 'Event Builder', 'Venue Website Link', 'Status'], 'client_secret.json', 2, [])
+# x = Sheet('BotTest', ['Shortname', 'EVP Phone', 'Event Builder', 'Venue Website Link', 'Status'], 'client_secret.json', 2, [])
 # error_clients = {'101-steak': {'Check': {'Changes': {'Added': {'Phone_Number': ['Contact Us Page'], 'Button': ['Contact Us Page']}, 'Removed': {'Phone_Number': ['Contact Us Page'], 'Button': ['Contact Us Page']}}}}}
 # u = {'404s': ['101-steak', 'wowowow'], 'Missing_Info': ['101-steak'], 'Selenium': {}}
 # subject, message = x._composeEmail(error_clients, u)

@@ -520,6 +520,6 @@ def lookupClient(lookup):
 #     print(key, '\n', value, '\n')
 
 # subject, message = sendHelp()
-subject, message = lookupClient('scrub-oaks')
+# subject, message = lookupClient('scrub-oaks')
 
-print(subject, '\n', message)
+# print(subject, '\n', message)
