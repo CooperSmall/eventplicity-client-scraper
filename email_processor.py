@@ -34,21 +34,21 @@ def main():
                 sender = str(email.header.make_header(email.header.decode_header(sent_email['From'])))
                 sender = re.search('<(.*)>', sender)
                 sender = sender.group(1)
-                # TODO
-                # Add Eventplicity email varification check
+
+                if re.search('eventplicity', sender) is not None or re.search('coopersmall', sender) is not None:
                 
-                if re.search('setting', subject) is not None:
-                    subject, message = updateSettings(subject, sent_email)
+                    if re.search('setting', subject) is not None:
+                        subject, message = updateSettings(subject, sent_email)
+                        print(subject, message)
+
+                    elif re.search('help', subject) is not None:
+                        subject, message = sendHelp()
+
+                    else:
+                        subject, message = lookupClient(subject)
+
                     print(subject, message)
-
-                elif re.search('help', subject) is not None:
-                    subject, message = sendHelp()
-
-                else:
-                    subject, message = lookupClient(subject)
-
-                print(subject, message)
-                _sendEmail(settings['USER'], settings['PASSWORD'], sender, subject, message)
+                    _sendEmail(settings['USER'], settings['PASSWORD'], sender, subject, message)
 
             # mail.store(uid, '+FLAGS', '(\\Deleted)')
             # mail.expunge()
@@ -333,7 +333,7 @@ def _updateMessage(update=None):
 def sendHelp():
     
     subject = 'Eventplicity Client Scraper Tutorial'
-    message = 'WELCOME TO THE EVENTPLICITY CLIENT SCRAPER TUTORIAL\n\n'
+    message = 'Welcome to the Eventplicity Client Scraper Tutorial\n\n'
     message += '--------------------------\nCURRENT SETTINGS\n--------------------------\n'
 
     path = os.getcwd()
@@ -353,7 +353,7 @@ def sendHelp():
             message += f'{setting}\n'
     message += '\n'
 
-    read_me = f'{path}/README.txt'
+    read_me = f'{path}/HELP.txt'
 
     with open(read_me, 'r') as read_me:
         read_me = read_me.read()
@@ -383,6 +383,7 @@ def _sendEmail(from_address, pwd, to_address, subject, message):
 def lookupClient(lookup):
 
     client = None
+    links = None
     path = os.getcwd()
 
     try:
@@ -394,6 +395,12 @@ def lookupClient(lookup):
         client = None
 
     try:
+        with open(f'{path}/data/clients.pkl', 'rb') as f:
+            links = pickle.load(f)
+    except:
+        links = None
+
+    try:
         title = lookup.replace('-', ' ')
         title = title.title()
     except:
@@ -403,12 +410,27 @@ def lookupClient(lookup):
     message = ''
 
     if client:
+        if links:
+            for name, website in links.items():
+                if name == lookup:
+                    links = website
+                    break
+
         if client != {'Index': {'Phone_Number': 0, 'Eventplicity_Link': 0}}:
             message += f"We found instances of our EVP Phone Number and our Eventbuilder Link on {title}'s following pages:\n\n"
             for page, value in client.items():
+                link = None
+                if links:
+                    for title, url in links.items():
+                        if page == title:
+                            link = url
+
                 if page == 'Index':
                     page = 'Home Page'
-                message += f'\t{page}:\n\n'
+                if link:
+                    message += f'\t{page} ({link}):\n\n'
+                else:
+                    message += f'\t{page}:\n\n'
 
                 for item, count in value.items():
                     if item == 'Phone_Number':
@@ -420,11 +442,22 @@ def lookupClient(lookup):
                 message += '\n'
 
         else:
-            message += f"We found no instances of our EVP Phone Number or our Eventbuilder Link on {lookup}'s website."
+            link = None
+            if links:
+                for user, website in links.items():
+                    if user == lookup:
+                        for page, url in website.items():
+                            if page == 'Index':
+                                link = url
+
+            message += f"We found no instances of our EVP Phone Number or our Eventbuilder Link on {title}'s website. "
+
+            if link:
+                message += f'To verify our findings, check their website at :{link}'
 
     else:
         try:
-            with open(f'{path}/errors.pkl', 'rb') as f:
+            with open(f'{path}/data/errors.pkl', 'rb') as f:
                 clients = pickle.load(f)
         except:
             clients = None
@@ -433,8 +466,17 @@ def lookupClient(lookup):
             if clients['404s'] != []:
                 for client in clients['404s']:
                     if client == lookup:
+                        link = None
+                        if links:
+                            for name, website in links.items():
+                                if name == lookup:
+                                    for _title, url in website.items():
+                                        if _title == 'Index':
+                                            link = url
                         message += f"We detected {title}'s website is currently offline. "
-                        message += 'Try checking their site manually, as some websites that make heavy use of JavaScript throw this error.'
+                        message += 'Try checking their site manually, as some websites that make heavy use of JavaScript throw this error: '
+                        if link:
+                            message += f'{link}'
                         break
 
             if clients['Missing_Info'] != [] and message == '':
@@ -447,8 +489,17 @@ def lookupClient(lookup):
             if clients['Selenium'] != [] and message == '':
                 for client in clients['Selenium']:
                     if client == lookup:
+                        link = None
+                        if links:
+                            for name, website in links.items():
+                                if name == lookup:
+                                    for _title, url in website.items():
+                                        if _title == 'Index':
+                                            link = url
                         message += f"{title}'s website makes heavy use of JavaScript which this program is unable to process. "
-                        message += 'Try checking their website manually.'
+                        message += 'Try checking their website manually: '
+                        if link:
+                            message += f'{link}'
                         break
 
     if message == '':
@@ -460,3 +511,15 @@ def lookupClient(lookup):
 
 
 # main()
+
+# path = os.getcwd()
+# with open(f'{path}/data/clients.pkl', 'rb') as f:
+#     links = pickle.load(f)
+
+# for key, value in links.items():
+#     print(key, '\n', value, '\n')
+
+# subject, message = sendHelp()
+subject, message = lookupClient('scrub-oaks')
+
+print(subject, '\n', message)

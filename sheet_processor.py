@@ -75,7 +75,6 @@ class Sheet(object):
                         connected = loop.run_until_complete(client.addWebsite())
 
                         if connected != 0:
-                            client_links[name] = client._links
                             check = client.runCheck()
 
                             if check == {name: {'Index': {'Phone_Number': 0, 'Eventplicity_Link': 0}}}:
@@ -100,6 +99,9 @@ class Sheet(object):
 
                         else:
                             unreachable_clients['404s'].append(name)
+
+                        links = {name: client._links}
+                        client_links.update(links)
 
                     else:
                         unreachable_clients['Missing_Info'].append(name)
@@ -201,6 +203,13 @@ class Sheet(object):
 
         added, removed = self._sortClients(error_clients)
 
+        try:
+            path = os.getcwd()
+            with open(f'{path}/data/clients.pkl', 'rb') as c:
+                links = pickle.load(c)
+        except:
+            links = None
+
         date = datetime.datetime.now()
         date = f'{date.month}/{date.day}/{date.year}'
 
@@ -215,41 +224,91 @@ class Sheet(object):
                 message += 'Our information was added to the following client(s) webpages:\n'
                 for error in added:
                     for client in error.keys():
-                        message += f'\n\t{client}:\n'
+                        message += f'\n\t{client}:\n\n'
                         try:
                             if error[client]['Phone_Number']:
                                 message += '\t\tPhone Number:\n'
-                                for page, link in error[client]['Phone_Number'].items():
-                                    message += f'\t\t\t{page} ({link})\n'
+                                for page in error[client]['Phone_Number']:
+                                    link = None
+                                    if links:
+                                        for user, website in links.items():
+                                            if user == client:
+                                                for _page, url in website.items():
+                                                    if page == _page:
+                                                        link = url
+                                                        break
+                                    if link:
+                                        message += f'\t\t\t-{page} ({link})\n'
+                                    else:
+                                        message += f'\t\t\t-{page}\n'
+
+                                message += '\n'
                         except:
                             continue
 
                         try:
                             if error[client]['Button']:
                                 message += '\t\tButton:\n'
-                                for page, link in error[client]['Button'].items():
-                                    message += f'\t\t\t{page} ({link})\n'
+                                for page in error[client]['Button']:
+                                    link = None
+                                    if links:
+                                        for user, website in links.items():
+                                            if user == client:
+                                                for _page, url in website.items():
+                                                    if page == _page:
+                                                        link = url
+                                                        break
+                                    if link:
+                                        message += f'\t\t\t-{page} ({link})\n'
+                                    else:
+                                        message += f'\t\t\t-{page}\n'
                         except:
                             continue
+
+                    message += '\n'
 
             if removed:
                 message += 'Our information was removed from the following client(s) webpages:\n'
                 for error in removed:
                     for client in error.keys():
-                        message += f'\n\t{client}:\n'
+                        message += f'\n\t{client}:\n\n'
                         try:
                             if error[client]['Phone_Number']:
                                 message += '\t\tPhone Number:\n'
-                                for page, link in error[client]['Phone_Number'].items():
-                                    message += f'\t\t\t{page} ({link})\n'
+                                for page in error[client]['Phone_Number']:
+                                    link = None
+                                    if links:
+                                        for user, website in links.items():
+                                            if user == client:
+                                                for _page, url in website.items():
+                                                    if page == _page:
+                                                        link = url
+                                                        break
+                                    if link:
+                                        message += f'\t\t\t-{page} ({link})\n'
+                                    else:
+                                        message += f'\t\t\t-{page}\n'
+
+                                message += '\n'
                         except:
                             continue
 
                         try:
                             if error[client]['Button']:
                                 message += '\t\tButton:\n'
-                                for page, link in error[client]['Button'].items():
-                                    message += f'\t\t\t{page} ({link})\n'
+                                for page in error[client]['Button']:
+                                    link = None
+                                    if links:
+                                        for user, website in links.items():
+                                            if user == client:
+                                                for _page, url in website.items():
+                                                    if page == _page:
+                                                        link = url
+                                                        break
+                                    if link:
+                                        message += f'\t\t\t-{page} ({link})\n'
+                                    else:
+                                        message += f'\t\t\t-{page}\n'
                         except:
                             continue
 
@@ -263,7 +322,19 @@ class Sheet(object):
                                 error = None
                                 break
                     if error:
-                        message += f'\t{error}\n'
+                        if links:
+                            link = None
+                            for user, website in links.items():
+                                if user == error:
+                                    for page, url in website.items():
+                                        if page == 'Index':
+                                            link = url
+                                            break
+
+                        if link:
+                            message += f'\t-{error}: {link}\n'
+                        else:
+                            message += f'\t-{error}\n'
 
             if len(unreachable_clients['Missing_Info']) > 0:
                 message += "\nThe following client(s) are missing the appropriate information to check their website:\n\n"
@@ -274,7 +345,19 @@ class Sheet(object):
                                 error = None
                                 break
                     if error:
-                        message += f'\t{error}\n'
+                        if links:
+                            link = None
+                            for user, website in links.items():
+                                if user == error:
+                                    for page, url in website.items():
+                                        if page == 'Index':
+                                            link = url
+                                            break
+
+                        if link:
+                            message += f'\t-{error}: {link}\n'
+                        else:
+                            message += f'\t-{error}\n'
 
         return subject, message
 
@@ -295,58 +378,43 @@ class Sheet(object):
                     changes = {client: {}}
                     if clients[client]['Check']['Changes']:
                         if clients[client]['Check']['Changes']['Added']['Phone_Number'] != []:
-                            client_dict = {'Phone_Number': {}}
-                            pages = {}
+                            client_dict = {'Phone_Number': []}
                             for page in clients[client]['Check']['Changes']['Added']['Phone_Number']:
-                                for _page, link in clients[client]['Website']._links.items():
-                                    if page == _page:
-                                        pages[page] = link
-                            client_dict['Phone_Number'] = pages
+                                client_dict['Phone_Number'].append(page)
                             changes[client] = client_dict
 
                         if clients[client]['Check']['Changes']['Added']['Button'] != []:
-                            client_dict = {'Button': {}}
-                            pages = {}
+                            client_dict = {'Button': []}
                             for page in clients[client]['Check']['Changes']['Added']['Button']:
-                                for _page, link in clients[client]['Website']._links.items():
-                                    if page == _page:
-                                        pages[page] = link
-                            client_dict['Button'] = pages
+                                client_dict['Button'].append(page)
                             if changes == {client: {}}:
                                 changes[client] = client_dict
                             else:
                                 changes[client].update(client_dict)
-                            
+
                         if changes != {client: {}}:
-                            added.append(changes)
+                            added.append(changes.copy())
                             changes.clear()
                             changes = {client: {}}
 
                         if clients[client]['Check']['Changes']['Removed']['Phone_Number'] != []:
-                            client_dict = {'Phone_Number': {}}
-                            pages = {}
+                            client_dict = {'Phone_Number': []}
                             for page in clients[client]['Check']['Changes']['Removed']['Phone_Number']:
-                                for _page, link in clients[client]['Website']._links.items():
-                                    if page == _page:
-                                        pages[page] = link
-                            client_dict['Phone_Number'] = pages
+                                client_dict['Phone_Number'].append(page)
                             changes[client] = client_dict
 
                         if clients[client]['Check']['Changes']['Removed']['Button'] != []:
-                            client_dict = {'Button': {}}
+                            client_dict = {'Button': []}
                             pages = {}
                             for page in clients[client]['Check']['Changes']['Removed']['Button']:
-                                for _page, link in clients[client]['Website']._links.items():
-                                    if page == _page:
-                                        pages[page] = link
-                            client_dict['Button'] = pages
+                                client_dict['Button'].append(page)
                             if changes == {client: {}}:
                                 changes[client] = client_dict
                             else:
                                 changes[client].update(client_dict)
 
                         if changes != {client: {}}:
-                            removed.append(changes)
+                            removed.append(changes.copy())
 
         if added == []:
             added = None
@@ -408,8 +476,8 @@ class Sheet(object):
             pickle.dump(client_links, f)
 
 
-# x = Sheet('BotTest', ['Shortname', 'EVP Phone', 'Event Builder', 'Venue Website Link', 'Status'], 'client_secret.json', 2, ['101-steak'])
-# error_clients = {'101-steak': {'Check': {'Changes': {'Added': {'Phone_Number': ['Contact Us Page'], 'Button': []}, 'Removed': {'Phone_Number': [], 'Button': []}}}}}
+x = Sheet('BotTest', ['Shortname', 'EVP Phone', 'Event Builder', 'Venue Website Link', 'Status'], 'client_secret.json', 2, [])
+# error_clients = {'101-steak': {'Check': {'Changes': {'Added': {'Phone_Number': ['Contact Us Page'], 'Button': ['Contact Us Page']}, 'Removed': {'Phone_Number': ['Contact Us Page'], 'Button': ['Contact Us Page']}}}}}
 # u = {'404s': ['101-steak', 'wowowow'], 'Missing_Info': ['101-steak'], 'Selenium': {}}
 # subject, message = x._composeEmail(error_clients, u)
 # print(subject, '\n', message)

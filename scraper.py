@@ -1,15 +1,13 @@
 __author__ = 'Cooper Small'
 __title__ = 'Website Scraper'
 
-import bs4 as bs
-from urllib.request import Request, urlopen, HTTPError
-from lxml import etree
 import re
 import aiohttp
 import asyncio
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 import os
+from lxml import etree
+import bs4 as bs
+from urllib.request import Request, urlopen, HTTPError
 
 
 class Website(object):
@@ -22,13 +20,22 @@ class Website(object):
     _extensions = {'Index': None}
 
     _keys = ['private', 'parties', 'page',
+             'about', 'visit', 'gift',
+             'happy', 'menu', 'gallery',
+             'room', 'specials', 'reviews',
              'contact', 'event', 'birthday',
              'party', 'catering', 'banquet',
              'wedding', 'Catering', 'Private',
              'Wedding', 'Parties', 'Party',
              'Contact', 'Event', 'Banquet',
+             'About', 'Visit', 'Gift',
+             'Happy', 'Menu', 'Gallery',
+             'Room', 'Specials', 'Reviews',
              'EVENT', 'WEDDING', 'PARTIES',
-             'CATERING', 'CONTACT', 'PRIVATE']
+             'CATERING', 'CONTACT', 'PRIVATE'
+             'ABOUT', 'VISIT', 'GIFT',
+             'HAPPY', 'MENU', 'GALLERY',
+             'ROOM', 'SPECIALS', 'REVIEWS']
 
     def __init__(self, name, number, button, url):
 
@@ -154,9 +161,11 @@ class Website(object):
         headers = {'User-Agent':
                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"}
 
+        self._links.clear()
         links = [self._cleanUrl(url) for url in urls]
         links = dict(zip(keys, links))
-        self._links.update(links)
+        links['Index'] = self._url
+        self._links = links
 
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
@@ -185,59 +194,6 @@ class Website(object):
 
         except:
             pass
-
-    def _addSelenium(self):
-
-        _extensions = {'Index': None}
-
-        path = os.getcwd()
-        path = f'{path}/driver/chromedriver.exe'
-        driver = webdriver.Chrome(path)
-        driver.get(self._url)
-        body = driver.page_source
-
-        _extensions['Index'] = body
-        print(body)
-
-        try:
-            links = driver.find_elements_by_xpath("//a[@href]")
-        except:
-            check = 0
-
-        # print(links)
-        for link in links:
-            link_string = str(link.get_attribute('href'))
-            # print(link_string)
-            i = 0
-            for key in self._keys:
-                if link and re.search(key, link_string) is not None and re.search('eventplicity', link_string) is None:
-                    body = self._click(link_string, path)
-                    if body != '!-------------404_NOT_FOUND-------------!':
-                        title = self._addTitle(key)
-                        _extensions[title] = body
-                        del self._keys[i]
-                    else:
-                        continue
-                else:
-                    i += 1
-                    continue
-
-        driver.close()
-        check = self._cleanExtensions(_extensions)
-        return check
-
-    def _click(self, link, path):
-
-        try:
-            driver = webdriver.Chrome(path)
-            driver.get(link)
-            body = driver.page_source
-            driver.close()
-
-        except:
-            body = '!-------------404_NOT_FOUND-------------!'
-
-        return body
 
     def _cleanExtensions(self, _extensions):
 
